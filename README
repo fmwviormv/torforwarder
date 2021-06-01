@@ -1,0 +1,39 @@
+Simple utility to forward raw TCP and SOCKS5 connections to TOR.
+
+I use this to fetch and send my emails!
+
+
+HOW TO BUILD
+
+Simply change all TODOs in the source file to fit your needs,
+then simply compile the source file:
+
+	$ cc torforwarder.c -o torforwarder
+
+You might need libbsd-dev depending on your operating system.
+
+
+HOW TO RUN
+
+torforwarder need 2 argument: local port to listen, and TOR port:
+
+	$ ./torforwarder 8465 9050
+
+
+HOW TO CONFIGURE fdm
+
+Add a proxy to your fdm.conf:
+
+	set proxy "socks://127.0.0.1:8465"
+
+
+HOW TO CONFIGURE OpenSMTPd
+
+Introduce 127.0.0.1 as your real smtp server in /etc/hosts:
+
+	127.0.0.1 smtp.example.com
+
+now add relevant rules in smtpd.conf:
+
+	action "outbound" relay host smtps://smtp.example.com:8465 \
+	    auth <secrets>
