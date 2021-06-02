@@ -160,6 +160,7 @@ main_loop(const int listen_s)
 			warnx("bad socket");
 			shutdown(client, SHUT_RDWR);
 			close(client);
+			client = -1;
 		}
 		for (int i = 0; i < MaxPeers; ++i)
 			if (client >= 0 && peers[i].client_s < 0) {
@@ -176,6 +177,7 @@ main_loop(const int listen_s)
 			warnx("no free slot to accept!");
 			shutdown(client, SHUT_RDWR);
 			close(client);
+			client = -1; /* unused assignment */
 		}
 	}
 	for (int i = 0; i < MaxPeers; ++i) {
@@ -586,10 +588,12 @@ shutdown_all(struct peer *const p)
 	if (p->client_s != -1) {
 		shutdown(p->client_s, SHUT_RDWR);
 		close(p->client_s);
+		p->client_s = -1;
 	}
 	if (p->tor_s != -1) {
 		shutdown(p->tor_s, SHUT_RDWR);
 		close(p->tor_s);
+		p->tor_s = -1;
 	}
 	p->client_s = p->tor_s = -1;
 }
