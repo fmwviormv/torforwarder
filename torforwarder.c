@@ -60,18 +60,13 @@ struct peer {
 	uint8_t		 outbuf[BufSize];	/* client to tor */
 } peers[MaxPeers];
 
-struct {
+struct translation_item {
 	const char	*name;
 	const char	*newname;
 } translation_table[] = {
-	/* TODO: add your translation addresses here
-         * list must be ordered by `name' fields in strcmp */
-#define O(a, b) { #a, #b ".onion" }
-	O(pop.riseup.net,
-	    5gdvpfoh6kb2iqbizb37lzk2ddzrwa47m6rpdueg2m656fovmbhoptqd),
-	O(smtp.riseup.net,
-	    5gdvpfoh6kb2iqbizb37lzk2ddzrwa47m6rpdueg2m656fovmbhoptqd)
-#undef O
+	/* TODO: add your translation addresses here */
+	{"pop.riseup.net", "5gdvpfoh6kb2iqbizb37lzk2ddzrwa47m6rpdueg2m656fovmbhoptqd.onion"},
+	{"smtp.riseup.net", "5gdvpfoh6kb2iqbizb37lzk2ddzrwa47m6rpdueg2m656fovmbhoptqd.onion"}
 };
 
 struct sockaddr_in local_addr = {
@@ -81,12 +76,17 @@ struct sockaddr_in local_addr = {
 	.sin_family = AF_INET,
 	.sin_addr = { .s_addr = htonl(0x7f000001) }
 };
+enum {
+	translation_table_len = sizeof(translation_table)
+	    / sizeof(translation_table[0])
+};
 
 /* TODO: default address and port to connect on raw TCP connections */
 const char	 default_address[] = /* smtp.riseup.net */
     "5gdvpfoh6kb2iqbizb37lzk2ddzrwa47m6rpdueg2m656fovmbhoptqd.onion";
 const uint16_t	 default_port = 465;
 
+int		 translation_item_cmp(const void *, const void *);
 uint16_t	 strtoport(const char *, const char *);
 int		 init_listener(const struct sockaddr_in *);
 void		 main_loop(int);
@@ -109,6 +109,8 @@ main(const int argc, const char *const *const argv)
 	if (pledge("stdio inet", NULL) < 0)
 		return 1;
 #endif
+	qsort(translation_table, translation_table_len,
+	    sizeof(translation_table[0]), translation_item_cmp);
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	if (argc != 3)
@@ -122,6 +124,13 @@ main(const int argc, const char *const *const argv)
 
 	for (;;)
 		main_loop(listen_s);
+}
+
+int
+translation_item_cmp(const void *px, const void *py)
+{
+	const struct translation_item *x = px, *y = py;
+	return strcmp(x->name, y->name);
 }
 
 void
@@ -517,10 +526,6 @@ tor_circuit(void)
 void
 write_address(const struct peer *const p, uint8_t *out, const bool tran)
 {
-	enum {
-		table_len = sizeof(translation_table)
-		    / sizeof(translation_table[0])
-	};
 	const uint8_t	*in = p->outbuf;
 	char		 name[256];
 	if (*in != 5) {
@@ -536,7 +541,8 @@ write_address(const struct peer *const p, uint8_t *out, const bool tran)
 	memcpy(name, in + 1, *in);
 	name[*in] = 0;
 	if (tran) {
-		for (int low = 0, high = table_len; low < high; ) {
+		for (int low = 0, high = translation_table_len;
+		    low < high; ) {
 			const int mid = low + ((high - low) >> 1);
 			const int cmp = strcmp(
 			    translation_table[mid].name, name);
