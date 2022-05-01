@@ -233,7 +233,7 @@ read_client(struct peer *const p)
 {
 	const size_t size = sizeof(p->outbuf) - p->outlen;
 	const size_t nread = (size_t)recv(
-	    p->client_s, p->outbuf + p->outlen, size, 0);
+	    p->client_s, p->outbuf + p->outlen, size, MSG_DONTWAIT);
 	if (size < nread) {
 		switch (nread == (size_t)-1 ? errno : 0) {
 		case EAGAIN:
@@ -260,7 +260,7 @@ read_tor(struct peer *const p)
 {
 	const size_t size = sizeof(p->inbuf) - p->inlen;
 	const size_t nread = (size_t)recv(
-	    p->tor_s, p->inbuf + p->inlen, size, 0);
+	    p->tor_s, p->inbuf + p->inlen, size, MSG_DONTWAIT);
 	if (size < nread) {
 		switch (nread == (size_t)-1 ? errno : 0) {
 		case EAGAIN:
@@ -287,7 +287,8 @@ write_client(struct peer *const p)
 {
 	if (p->inlen) {
 		const size_t nwrite = (size_t)send(
-		    p->client_s, p->inbuf, (size_t)p->inlen, 0);
+		    p->client_s, p->inbuf, (size_t)p->inlen,
+		    MSG_DONTWAIT);
 		if ((size_t)p->inlen < nwrite) {
 			switch (nwrite == (size_t)-1 ? errno : 0) {
 			case EAGAIN:
@@ -313,7 +314,8 @@ write_tor(struct peer *const p)
 {
 	if (p->outlen) {
 		const size_t nwrite = (size_t)send(
-		    p->tor_s, p->outbuf, (size_t)p->outlen, 0);
+		    p->tor_s, p->outbuf, (size_t)p->outlen,
+		    MSG_DONTWAIT);
 		if ((size_t)p->outlen < nwrite) {
 			switch (nwrite == (size_t)-1 ? errno : 0) {
 			case EAGAIN:
@@ -338,7 +340,8 @@ void
 init_client(struct peer *const p, const size_t nread)
 {
 #define send_or_die(buf, len, ...) do { \
-		size_t nsend = (size_t)send(p->client_s, buf, len, 0); \
+		size_t nsend = (size_t)send(p->client_s, buf, len, \
+		    MSG_DONTWAIT); \
 		if (nsend != (size_t)(len)) { \
 			(nsend == (size_t)-1 ? warn : warnx) \
 			    (__VA_ARGS__); \
@@ -391,7 +394,8 @@ void
 init_tor(struct peer *const p, const size_t nread)
 {
 #define send_or_die(buf, len, ...) do { \
-		size_t nsend = (size_t)send(p->tor_s, buf, len, 0); \
+		size_t nsend = (size_t)send(p->tor_s, buf, len, \
+		    MSG_DONTWAIT); \
 		if (nsend != (size_t)(len)) { \
 			(nsend == (size_t)-1 ? warn : warnx) \
 			    (__VA_ARGS__); \
